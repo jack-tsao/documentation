@@ -10,7 +10,8 @@
 ---
 
 ## Launching Isaac Sim
-
+### DO NOT INTERACT WITH ISAAC SIM WHILST LOADING ###
+## This can cause the entire system to crash ##
 ### Method 1: Using Launch Script (Recommended)
 ```bash
 ./isaacsim5.0.0.sh
@@ -47,11 +48,8 @@ Launch Isaac Sim using the script above.
 - **File → Open** (for existing scene)
 
 #### Step 3: Import Robot USD
-1. **Create → Reference** or press `Ctrl+Shift+R`
-2. Navigate to your robot's USD file location
-3. Select the USD file (e.g., `/home/george/Downloads/example_holonomic_controller.usd`)
-4. Click **Open**
-
+1. Navigate to your robot's USD file location (e.g., `/home/george/Downloads/example_holonomic_controller.usd`)
+2. Drag the file into `Stage` on the right side menu
 **Example Robot USD Paths:**
 - Isaac Lab Robots: `~/Downloads/isaacsim/Assets/Isaac/4.2/Isaac/IsaacLab/Robots/`
   - Franka Panda: `FrankaEmika/panda_instanceable.usd`
