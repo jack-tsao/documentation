@@ -20,7 +20,7 @@
 ### Starting the System
 ```bash
 cd /home/george/pointmovement
-./run_navigation.sh
+./slam_full_system.sh
 ```
 
 ### Stopping the System
@@ -43,7 +43,7 @@ pkill -f slam_toolbox && pkill -f odom_to_tf && pkill -f holonomic_controller &&
 1. Ensure Isaac Sim is **PLAYING** (not paused)
 2. Restart the system:
    ```bash
-   ./run_navigation.sh
+   ./slam_full_system.sh
    ```
 3. Wait 3-5 seconds for SLAM to initialize
 4. Check if `/map` topic is publishing:
@@ -92,7 +92,7 @@ Should show non-zero velocities when waypoint is active.
 cd /home/george/pointmovement
 ./build.sh
 source install/setup.bash
-./run_navigation.sh
+./slam_full_system.sh
 ```
 
 **Verification:**
@@ -120,7 +120,7 @@ source install/setup.bash
 3. Restart RViz:
    ```bash
    pkill -f rviz2
-   ./run_navigation.sh --mode rviz
+   ./slam_full_system.sh --mode rviz
    ```
 
 ### Issue 5: SLAM Not Creating Map
@@ -161,7 +161,7 @@ SLAM works best with static obstacles (walls, furniture).
 2. Clean environment and restart:
    ```bash
    cd /home/george/pointmovement
-   ./run_navigation.sh
+   ./slam_full_system.sh
    ```
 
 ### Issue 7: TF Transform Errors
@@ -184,7 +184,7 @@ SLAM works best with static obstacles (walls, furniture).
 
 **A. SLAM Toolbox not running**
 - Error message: "SLAM Toolbox service not available - is SLAM running?"
-- Solution: Ensure you started with `./run_navigation.sh` (not just RViz mode)
+- Solution: Ensure you started with `./slam_full_system.sh` (not just RViz mode)
 - Verify SLAM is running:
   ```bash
   ros2 node list | grep slam
@@ -357,7 +357,7 @@ source install/setup.bash
 
 ## Notes
 
-**System is Pre-Configured:** All RViz displays, plugins, and launch configurations are set up by default. Simply run `./run_navigation.sh` to start the entire system.
+**System is Pre-Configured:** All RViz displays, plugins, and launch configurations are set up by default. Simply run `./slam_full_system.sh` to start the entire system.
 
 **For Detailed Setup Information:** Refer to the original documentation files:
 - `README_SLAM.md` - SLAM integration details
