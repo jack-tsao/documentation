@@ -47,9 +47,14 @@ Launch Isaac Sim using the script above.
 - **File → Open** (for existing scene)
 
 #### Step 3: Import Robot USD
+
+### 3.1: Drag and drop ###
+1. Find the usd of rossmasterx3 (e.g., `/home/george/Downloads/Rossmasterx3.usd`)
+2. Drag and drop into `stage` in Isaac sim
+### 3.2: GUI ###
 1. **Create → Reference** or press `Ctrl+Shift+R`
 2. Navigate to your robot's USD file location
-3. Select the USD file (e.g., `/home/george/Downloads/example_holonomic_controller.usd`)
+3. Select the USD file (e.g., `/home/george/Downloads/Rossmasterx3.usd`)
 4. Click **Open**
 
 **Example Robot USD Paths:**
