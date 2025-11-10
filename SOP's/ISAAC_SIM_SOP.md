@@ -3,7 +3,7 @@
 ## Table of Contents
 1. [Launching Isaac Sim](#launching-isaac-sim)
 2. [Importing a Robot from USD](#importing-a-robot-from-usd)
-3. [Setting Up ROS2 Integration](#setting-up-ros2-integration)
+3. [Adding Sensors and RViz Integration](#adding-sensors-and-rviz-integration)
 4. [Troubleshooting & Diagnostics](#troubleshooting--diagnostics)
 5. [Common Issues & Solutions](#common-issues--solutions)
 
@@ -47,14 +47,9 @@ Launch Isaac Sim using the script above.
 - **File → Open** (for existing scene)
 
 #### Step 3: Import Robot USD
-
-### 3.1: Drag and drop ###
-1. Find the usd of rossmasterx3 (e.g., `/home/george/Downloads/Rossmasterx3.usd`)
-2. Drag and drop into `stage` in Isaac sim
-### 3.2: GUI ###
 1. **Create → Reference** or press `Ctrl+Shift+R`
 2. Navigate to your robot's USD file location
-3. Select the USD file (e.g., `/home/george/Downloads/Rossmasterx3.usd`)
+3. Select the USD file (e.g., `/home/george/Downloads/example_holonomic_controller.usd`)
 4. Click **Open**
 
 **Example Robot USD Paths:**
@@ -137,87 +132,264 @@ add_reference_to_stage(
 
 ---
 
-## Setting Up ROS2 Integration
+## Adding Sensors and RViz Integration
 
-### Enable ROS2 Bridge Extension
+### Prerequisites
 
-#### GUI Method:
+**Enable ROS2 Bridge Extension:**
 1. **Window → Extensions**
 2. Search: "ROS2 Bridge"
 3. Enable: **omni.isaac.ros2_bridge**
 
-#### Python Method:
+Or via Python:
 ```python
 from omni.isaac.core.utils.extensions import enable_extension
 enable_extension("omni.isaac.ros2_bridge")
 ```
 
-### Setting Up Action Graphs for ROS2
+---
+
+### Adding Sensors to Your Robot
+
+#### Method 1: Adding Lidar Sensor (GUI)
+
+1. **Select Robot Prim** in Stage panel
+2. **Create → Isaac → Sensors → Lidar → Rotating Lidar**
+3. Position the sensor:
+   - Select Lidar prim in hierarchy
+   - Use Transform tools (W, E, R) to position
+   - Typical position: On top of robot chassis
+
+4. **Configure Lidar Properties:**
+   - Min Range: `0.1` meters
+   - Max Range: `10.0` meters
+   - Horizontal FOV: `360.0` degrees
+   - Vertical FOV: `30.0` degrees
+   - Horizontal Resolution: `0.5` degrees
+   - Vertical Resolution: `1.0` degrees
+   - Rotation Rate: `20.0` Hz
+
+#### Method 2: Adding Camera Sensor (GUI)
+
+1. **Select Robot Prim**
+2. **Create → Camera**
+3. Position camera on robot
+4. **Configure Camera Properties:**
+   - Resolution: `1280x720` or `640x480`
+   - Focal Length: `24.0`
+   - Horizontal Aperture: `20.955`
+
+#### Method 3: Adding Depth Camera (GUI)
+
+1. **Select Robot Prim**
+2. **Create → Isaac → Sensors → Camera → RGB-D Camera**
+3. Position camera
+4. **Configure Depth Properties:**
+   - Near Clipping: `0.1`
+   - Far Clipping: `10.0`
+
+#### Method 4: Adding IMU Sensor (GUI)
+
+1. **Select Robot Prim**
+2. **Create → Isaac → Sensors → IMU Sensor**
+3. Position at robot center of mass
+4. Configure update rate and noise parameters
+
+---
+
+### Setting Up Action Graphs for Sensor Publishing
 
 #### Step 1: Open Action Graph Editor
 **Window → Visual Scripting → Action Graph**
 
 #### Step 2: Create New Action Graph
 1. Click **New Action Graph**
-2. Name it: `RobotActionGraph`
-3. Set path: `/World/Robot/ActionGraph`
+2. Name it: `SensorPublishingGraph`
+3. Set path: `/World/Robot/SensorGraph`
 
-#### Step 3: Add Essential Nodes
+#### Step 3: Add Core Nodes
 
-**Basic ROS2 Publishing Setup:**
+**Required Nodes for Any ROS2 Publishing:**
 
-1. **On Playback Tick** (trigger node)
-   - Already present in most graphs
-   - Fires every simulation frame
+1. **On Playback Tick** (trigger)
+   - Automatically fires every simulation frame
+   - Usually present by default
 
-2. **ROS2 Context** (required for all ROS2 nodes)
+2. **ROS2 Context** (required for all ROS2 communication)
    - Path: `ROS2 → Context → ROS2 Context`
-   - Domain ID: 0 (default)
+   - Domain ID: `0`
    - Node Name: `isaac_sim_node`
 
-3. **ROS2 Publish Laser Scan** (for LiDAR)
-   - Path: `ROS2 → Publishers → ROS2 Publish Laser Scan`
+#### Step 4: Add Sensor-Specific Publishers
+
+**For Lidar → RViz:**
+
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish Laser Scan`
+2. **Configure**:
    - Topic Name: `/scan`
-   - Frame ID: `sim_camera` or `laser_frame`
-   - **QoS Profile**:
-     - Reliability: `BEST_EFFORT` (⚠️ IMPORTANT for SLAM)
+   - Frame ID: `lidar_frame` or `base_link`
+   - **QoS Profile** (CRITICAL):
+     - Reliability: `BEST_EFFORT`
      - Durability: `VOLATILE`
      - History: `KEEP_LAST`
+     - Depth: `10`
 
-4. **ROS2 Publish Odometry** (for robot motion)
-   - Path: `ROS2 → Publishers → ROS2 Publish Odometry`
-   - Topic Name: `/odom`
-   - Frame ID (odom): `odom`
-   - Frame ID (robot): `base_link` or `sim_camera`
+3. **Connect Lidar Prim**:
+   - Select "Isaac Read Lidar Beam Node" if needed
+   - Or directly connect lidar prim path to publisher
 
-5. **ROS2 Publish Transform Tree** (for TF tree)
-   - Path: `ROS2 → Publishers → ROS2 Publish Transform Tree`
-   - Target Prims: Path to robot root
-   - Parent Frame: `odom`
+**For RGB Camera → RViz:**
 
-#### Step 4: Connect Nodes
-1. Connect **On Playback Tick → execIn** to each ROS2 publisher
-2. Connect **ROS2 Context → context** to each ROS2 node
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish Camera Info`
+2. **Add Node**: `ROS2 → Publishers → ROS2 Publish RGB`
+3. **Configure Camera Info**:
+   - Topic Name: `/camera/camera_info`
+   - Frame ID: `camera_frame`
+4. **Configure RGB Publisher**:
+   - Topic Name: `/camera/image_raw`
+   - Frame ID: `camera_frame`
+   - Encoding: `rgb8`
 
-#### Step 5: Configure QoS Settings (Critical!)
+**For Depth Camera → RViz:**
 
-**For SLAM Compatibility:**
-All sensor publishers (Laser Scan, Point Cloud) must use:
-- **Reliability: BEST_EFFORT**
-- **Durability: VOLATILE**
-- **History: KEEP_LAST**
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish Depth`
+2. **Configure**:
+   - Topic Name: `/camera/depth/image_raw`
+   - Frame ID: `camera_depth_frame`
 
-**Why?** SLAM Toolbox and other ROS2 SLAM nodes require BEST_EFFORT QoS. Default RELIABLE setting causes subscription mismatches.
+**For Point Cloud → RViz:**
 
-### Python Action Graph Setup
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish Point Cloud`
+2. **Configure**:
+   - Topic Name: `/points`
+   - Frame ID: `lidar_frame`
+   - QoS: `BEST_EFFORT`
+
+**For IMU → RViz:**
+
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish IMU`
+2. **Configure**:
+   - Topic Name: `/imu`
+   - Frame ID: `imu_link`
+
+**For Transform Tree (TF):**
+
+1. **Add Node**: `ROS2 → Publishers → ROS2 Publish Transform Tree`
+2. **Configure**:
+   - Topic Name: `/tf`
+   - Target Prims: `/World/Robot` (your robot root)
+   - Parent Frame: `odom` or `world`
+
+#### Step 5: Connect All Nodes
+
+**Connection Pattern:**
+```
+On Playback Tick → execIn (for each publisher)
+ROS2 Context → context (for each ROS2 node)
+Sensor Prim → input (for each sensor publisher)
+```
+
+**Example Connections:**
+1. `OnPlaybackTick.outputs:tick` → `PublishLaserScan.inputs:execIn`
+2. `ROS2Context.outputs:context` → `PublishLaserScan.inputs:context`
+3. `LidarPrim.outputs:data` → `PublishLaserScan.inputs:data` (if using read node)
+
+#### Step 6: Save and Test
+1. **File → Save**
+2. Click **Play** in Isaac Sim
+3. Verify topics are publishing:
+   ```bash
+   ros2 topic list
+   ros2 topic hz /scan
+   ros2 topic echo /scan --once
+   ```
+
+---
+
+### Visualizing in RViz
+
+#### Step 1: Launch RViz
+```bash
+rviz2
+```
+
+#### Step 2: Set Fixed Frame
+1. In **Global Options**
+2. Set **Fixed Frame**: `odom` or `base_link`
+
+#### Step 3: Add Sensor Displays
+
+**Add Laser Scan:**
+1. Click **Add** button
+2. Select **LaserScan**
+3. Configure:
+   - Topic: `/scan`
+   - Size: `0.05`
+   - Color: Red or Rainbow by intensity
+   - Decay Time: `0`
+
+**Add Camera Image:**
+1. Click **Add**
+2. Select **Image** or **Camera**
+3. Topic: `/camera/image_raw`
+
+**Add Point Cloud:**
+1. Click **Add**
+2. Select **PointCloud2**
+3. Configure:
+   - Topic: `/points`
+   - Size: `0.01`
+   - Style: Points or Flat Squares
+   - Color Transformer: RGB8 or Intensity
+
+**Add TF Tree:**
+1. Click **Add**
+2. Select **TF**
+3. Shows all coordinate frames and relationships
+
+**Add Robot Model (Optional):**
+1. Click **Add**
+2. Select **RobotModel**
+3. Topic: `/robot_description`
+
+#### Step 4: Troubleshooting RViz Display
+
+**If sensors don't appear:**
+
+1. **Check Topic Publishing:**
+   ```bash
+   ros2 topic list
+   ros2 topic hz /scan
+   ```
+
+2. **Check Frame ID:**
+   - RViz Status should show "OK" (green)
+   - If red, check Fixed Frame matches sensor Frame ID
+   - Verify TF tree has required transforms
+
+3. **Check QoS Match:**
+   ```bash
+   ros2 topic info /scan -v
+   ```
+   Ensure publisher and subscriber QoS are compatible
+
+4. **Check Data:**
+   ```bash
+   ros2 topic echo /scan --once
+   ```
+   Verify sensor is producing valid data
+
+---
+
+### Python Action Graph Setup Example
 
 ```python
 import omni.graph.core as og
 
-graph_path = "/World/Robot/ActionGraph"
+graph_path = "/World/Robot/SensorGraph"
 keys = og.Controller.Keys
 
-# Create action graph
+# Create action graph for Lidar + Camera + TF
 og.Controller.edit(
     {"graph_path": graph_path, "evaluator_name": "execution"},
     {
@@ -225,38 +397,76 @@ og.Controller.edit(
             ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
             ("ROS2Context", "omni.isaac.ros2_bridge.ROS2Context"),
             ("PublishScan", "omni.isaac.ros2_bridge.ROS2PublishLaserScan"),
-            ("PublishOdom", "omni.isaac.ros2_bridge.ROS2PublishOdometry"),
+            ("PublishCameraInfo", "omni.isaac.ros2_bridge.ROS2PublishCameraInfo"),
+            ("PublishRGB", "omni.isaac.ros2_bridge.ROS2PublishRgb"),
             ("PublishTF", "omni.isaac.ros2_bridge.ROS2PublishTransformTree"),
         ],
         keys.SET_VALUES: [
             # ROS2 Context
             ("ROS2Context.inputs:domain_id", 0),
-            ("ROS2Context.inputs:useDomainIDEnvVar", False),
 
-            # Laser Scan Publisher
+            # Laser Scan
             ("PublishScan.inputs:topicName", "/scan"),
-            ("PublishScan.inputs:frameId", "sim_camera"),
-            ("PublishScan.inputs:qosProfile.reliability", 0),  # 0=BEST_EFFORT
+            ("PublishScan.inputs:frameId", "lidar_frame"),
+            ("PublishScan.inputs:qosProfile.reliability", 0),  # BEST_EFFORT
 
-            # Odometry Publisher
-            ("PublishOdom.inputs:topicName", "/odom"),
-            ("PublishOdom.inputs:odomFrameId", "odom"),
-            ("PublishOdom.inputs:robotFrameId", "base_link"),
+            # Camera Info
+            ("PublishCameraInfo.inputs:topicName", "/camera/camera_info"),
+            ("PublishCameraInfo.inputs:frameId", "camera_frame"),
 
-            # TF Publisher
+            # RGB Image
+            ("PublishRGB.inputs:topicName", "/camera/image_raw"),
+            ("PublishRGB.inputs:frameId", "camera_frame"),
+
+            # Transform Tree
             ("PublishTF.inputs:topicName", "/tf"),
-            ("PublishTF.inputs:parentFrame", "odom"),
+            ("PublishTF.inputs:targetPrims", ["/World/Robot"]),
         ],
         keys.CONNECT: [
+            # Execution connections
             ("OnPlaybackTick.outputs:tick", "PublishScan.inputs:execIn"),
-            ("OnPlaybackTick.outputs:tick", "PublishOdom.inputs:execIn"),
+            ("OnPlaybackTick.outputs:tick", "PublishCameraInfo.inputs:execIn"),
+            ("OnPlaybackTick.outputs:tick", "PublishRGB.inputs:execIn"),
             ("OnPlaybackTick.outputs:tick", "PublishTF.inputs:execIn"),
+
+            # Context connections
             ("ROS2Context.outputs:context", "PublishScan.inputs:context"),
-            ("ROS2Context.outputs:context", "PublishOdom.inputs:context"),
+            ("ROS2Context.outputs:context", "PublishCameraInfo.inputs:context"),
+            ("ROS2Context.outputs:context", "PublishRGB.inputs:context"),
             ("ROS2Context.outputs:context", "PublishTF.inputs:context"),
         ],
     },
 )
+```
+
+---
+
+### QoS Settings Reference
+
+**Critical for RViz Compatibility:**
+
+| Sensor Type | Reliability | Durability | History |
+|-------------|-------------|------------|---------|
+| Lidar/Laser Scan | BEST_EFFORT | VOLATILE | KEEP_LAST |
+| Camera (RGB/Depth) | BEST_EFFORT | VOLATILE | KEEP_LAST |
+| Point Cloud | BEST_EFFORT | VOLATILE | KEEP_LAST |
+| IMU | BEST_EFFORT | VOLATILE | KEEP_LAST |
+| TF Tree | RELIABLE | VOLATILE | KEEP_LAST |
+| Odometry | RELIABLE | VOLATILE | KEEP_LAST |
+
+**QoS Values in Python:**
+```python
+# Reliability
+0 = BEST_EFFORT   # For sensor data
+1 = RELIABLE      # For commands/TF
+
+# Durability
+0 = VOLATILE
+1 = TRANSIENT_LOCAL
+
+# History
+0 = KEEP_LAST
+1 = KEEP_ALL
 ```
 
 ---
@@ -605,6 +815,13 @@ ros2 run tf2_tools view_frames
 ---
 
 ## Changelog
+
+- **2025-11-10:** Updated sensor integration section
+  - Replaced ROS2 integration section with sensor-focused content
+  - Added detailed sensor addition procedures (Lidar, Camera, Depth, IMU)
+  - Added comprehensive action graph setup for sensors
+  - Added RViz integration and visualization guide
+  - Added QoS settings reference table
 
 - **2025-11-07:** Initial SOP creation
   - Added launch procedures
