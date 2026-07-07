@@ -1,0 +1,1 @@
+The below script has been modified to output a RAG database retrieval time and the total time required for an output after each query to the LLM.
