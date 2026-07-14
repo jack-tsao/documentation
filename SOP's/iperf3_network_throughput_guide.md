@@ -69,3 +69,14 @@ The `-t 86400` option runs the test for **24 hours**.
 -   If the connection is interrupted, the test will stop and must be
     restarted.
 -   Press **Ctrl+C** on either device to stop the test early.
+-   If the connection suddenly stops, check to see if the network card on either machine is still active 
+
+
+
+
+
+
+
+
+
+
