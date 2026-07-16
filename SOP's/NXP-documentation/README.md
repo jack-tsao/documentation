@@ -17,3 +17,8 @@ A demo RAG file is provided which contains very rudimentary information. It and 
 If you choose to use this file feel free to skip the host PC setup process, although you will still need another PC to view outputs from the board.
 
 Please consult ```document-guide.md``` under ```original-documents``` to view the original SOPs used to set up this demo.
+
+Things to fix:
+
+- Generate larger RAG database for more comprehensive knowledge background
+- Find more advanced language model for more intelligent responses
