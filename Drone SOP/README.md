@@ -1,1 +1,187 @@
+# ASR-D501 YOLO Drone Demo
 
+**Real-time object detection controlling drone motors using CPU and NPU inference on the Qualcomm QCS6490.**
+
+Built for Japan IT Week 2026 at the Advantech booth to demonstrate the difference between running YOLOv8 on a general-purpose CPU versus the integrated Hexagon NPU.
+
+---
+
+> **⚠️ SAFETY WARNING**
+>
+> This is a **stationary demonstration only**. The drone does not fly. **Remove all propellers before running any script.** The motors spin to demonstrate that AI detection controls physical actuators - they are not configured for flight. Actual flight-capable scripts with proper safety checks, failsafes, and GPS/altitude hold are not included and would need to be developed separately.
+
+---
+
+## What It Does
+
+A camera watches the scene. When the YOLOv8 model detects a **clock**, the drone motors speed up. Move the clock left or right and the drone yaws to follow. Remove the clock and the motors drop back to idle.
+
+Two versions of the same demo:
+- **CPU version** - YOLOv8n runs on the ARM Cortex-A78 cores (1.3 FPS, 600-700ms latency)
+- **NPU version** - YOLOv8n runs on the Hexagon HTP NPU (110.3 FPS, real-time response)
+
+Same model, same camera, same drone. The only difference is where the inference runs.
+
+---
+
+## Hardware
+
+| Component | Details |
+|-----------|---------|
+| **Companion Computer** | [Advantech ASR-D501](https://www.advantech.com/) - Qualcomm QCS6490 SoC, 8GB LPDDR5, 128GB UFS, Ubuntu 24.04 LTS |
+| **Flight Controller** | Pixhawk 1 running ArduCopter V4.6.x |
+| **Drone Frame** | [DJI F450 frame kit](https://www.hawks-work.com/pages/f450-drone) - assembly instructions at the link |
+| **Camera (Option A)** | AnkerWork C310 - USB webcam, outputs MJPEG |
+| **Camera (Option B)** | Intel RealSense D435i - USB depth camera, RGB stream outputs YUYV |
+
+---
+
+## Repository Structure
+
+```
+├── README.md                          # This file
+├── SETUP-GUIDE.md                     # How to run the demo (start here)
+├── docs/
+│   ├── ROS2-and-MAVROS-install.md     # Installing ROS 2 Jazzy + MAVROS on Ubuntu 24.04
+│   ├── NPU-deployment-guide.md        # Adapting the GStreamer pipeline from Yocto to Ubuntu
+│   └── RTABMAP-mapping.md             # 3D mapping with Intel RealSense (optional)
+├── scripts/
+│   ├── ankerCAM_cpu_demo.py           # CPU inference - AnkerWork C310
+│   ├── ankerCAM_npu_demo.py           # NPU inference - AnkerWork C310
+│   ├── intelCAM_cpu_demo.py           # CPU inference - Intel RealSense D435i
+│   ├── intelCAM_npu_demo.py           # NPU inference - Intel RealSense D435i
+│   ├── anker_MJPEG_yolo_cam_ai_hub.sh # GStreamer shell script - AnkerWork (MJPEG)
+│   └── intel_YUY2_yolo_cam_ai_hub.sh  # GStreamer shell script - Intel RealSense (YUYV)
+└── model/
+    ├── labels.txt                     # COCO class labels (80 classes)
+    └── yolov8_det.tflite              # Quantized YOLOv8n model for NPU (see below)
+```
+
+---
+
+## Quick Start
+
+> Full step-by-step instructions: **[SETUP-GUIDE.md](SETUP-GUIDE.md)**
+
+```bash
+# Terminal 1 - Start MAVROS
+ros2 launch mavros apm.launch fcu_url:=/dev/ttyACM0:115200
+
+# Terminal 2 - Run the demo
+cd scripts/
+
+# CPU version (AnkerWork camera):
+python3 ankerCAM_cpu_demo.py
+
+# NPU version (AnkerWork camera):
+python3 ankerCAM_npu_demo.py
+```
+
+Point the camera at a clock. Motors react.
+
+---
+
+## Model Quantization
+
+The NPU requires a quantized TFLite model. The original YOLOv8n PyTorch model (.pt) is converted through:
+
+```
+.pt (PyTorch) → ONNX → .tflite (INT8 quantized for Hexagon HTP)
+```
+
+Follow the Advantech quantization guide:
+https://github.com/ADVANTECH-Corp/EdgeAI_Workflow/blob/main/ai_system/qualcomm/aom-dk2721/linux/object_detection_demo-using-qc_ai_hub.md
+
+> **Note:** The shell scripts in that guide are written for Yocto Linux with a MIPI camera. If you are running Ubuntu with a USB camera (AnkerWork or RealSense), use the adapted shell scripts in `scripts/` instead. See [NPU Deployment Guide](docs/NPU-deployment-guide.md) for details on what changed and why.
+
+---
+
+## Available Models
+
+Pre-quantized INT8 TFLite models for the Hexagon NPU are included in the `model/` directory:
+
+| File | Architecture | Size |
+|------|-------------|------|
+| `yolov8n_det.tflite` | YOLOv8 nano | 3.3 MB |
+| `yolov8s_det.tflite` | YOLOv8 small | 11.0 MB |
+| `yolov8m_det.tflite` | YOLOv8 medium | 25.2 MB |
+| `yolov8l_det.tflite` | YOLOv8 large | 42.4 MB |
+| `yolov8x_det.tflite` | YOLOv8 extra-large | 67.5 MB |
+| `yolov11n_det.tflite` | YOLOv11 nano | 2.8 MB |
+| `yolov11s_det.tflite` | YOLOv11 small | 9.5 MB |
+| `yolov11m_det.tflite` | YOLOv11 medium | 20.3 MB |
+
+The default is `yolov8n_det.tflite`. To use a different model, change the `MODEL_FILE` variable at the top of any NPU script:
+
+```python
+MODEL_FILE = "yolov8s_det.tflite"  # ← change this
+```
+
+Then copy the model to the scripts directory:
+
+```bash
+cp model/yolov8s_det.tflite ~/ai-hub/EdgeAI_Workflow/ai_system/qualcomm/aom-dk2721/linux/script/
+```
+
+---
+
+## Measured Performance
+
+| Metric | CPU | NPU |
+|--------|-----|-----|
+| Inference FPS | ~1.3 | ~110.3 |
+| Board power draw | ~8.5W | ~7.6W |
+| Response latency | ~600-700ms (noticeable) | ~25ms (instant) |
+| Model size | ~12 MB (FP32) | ~3.3 MB (INT8) |
+
+Idle board power: 5.8W. Board maximum rated: 11W.
+
+---
+
+## Prerequisites
+
+- Ubuntu 24.04 LTS on the ASR-D501
+- ROS 2 Jazzy + MAVROS installed ([installation guide](docs/ROS2-and-MAVROS-install.md))
+- Pixhawk flight controller with ArduCopter firmware
+- Camera connected via USB
+
+---
+
+## Camera Support
+
+| Camera | Format | Device | Decode Stage |
+|--------|--------|--------|-------------|
+| AnkerWork C310 | MJPEG | `/dev/video2` | jpegparse → jpegdec → videoconvert |
+| Intel RealSense D435i | YUYV | `/dev/video6` (RGB) | videoconvert only |
+
+Both cameras produce NV12 after conversion. The NPU inference path is identical from that point on.
+
+To find the correct device for the RealSense:
+```bash
+v4l2-ctl --list-devices
+v4l2-ctl -d /dev/videoN --list-formats-ext  # look for YUYV
+```
+
+---
+
+## Flight Controller Parameters
+
+These must be set in Mission Planner before running the demo:
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| RC_OVERRIDE_TIME | 3 | RC override timeout (seconds) |
+| ARMING_CHECK | 0 | Disable pre-arm safety checks |
+| FS_THR_ENABLE | 0 | Disable throttle failsafe |
+| SYSID_MYGCS | 1 | Must match MAVROS system_id |
+| BRD_SAFETY_MASK | 0 | Bypass safety switch |
+| MOT_SPIN_ARM | 0.15 | Motor spin when armed (15%) |
+| MOT_SPIN_MIN | 0.15 | Minimum motor spin (15%) |
+
+---
+
+## Author
+
+**Szymon Dudek** - Internship at Advantech Co., Ltd., Tokyo, Japan (2025-2026)
+
+Supervisor: **Jack Tsao** 
