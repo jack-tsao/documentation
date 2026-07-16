@@ -87,3 +87,9 @@ Configure **each access point individually**.
 | AP1 | `192.168.1.2` |
 | AP2 | `192.168.1.3` |
 | DHCP Pool | `192.168.1.100+` |
+
+## Code to View Connectivity Strength
+In the AMR's terminal enter: 
+1. iw dev
+   You will need information from this that looks like "wlpS0"
+2. watch -n 1 "iw dev wlpS0 link"
