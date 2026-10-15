@@ -1,0 +1,12 @@
+services:
+  object-detection:
+    image: m4x1m25/weda-object-detection:v2
+    privileged: true
+    environment:
+      - DISPLAY=:0
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/bus/usb:/dev/bus/usb
+    devices:
+      - /dev/dri:/dev/dri
+    restart: unless-stopped
