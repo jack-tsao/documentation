@@ -5,6 +5,25 @@ vision workload through WEDA's deployment pipeline on an Advantech ARK-2252.
 
 **Author:** Max Langs (AJP intern)
 
+## Environment / access details
+
+- **Target hardware:** Advantech **ARK-2252** (Intel Panther Lake, x86_64). This image
+  will *not* run on the AIR-055 (Qualcomm/ARM) — see Known Issues below.
+- **Already set up on the dev PC** at `~/weda-object-detection` — the Dockerfile,
+  compose file, and app code are pre-installed there; this repo copy is a snapshot of
+  the same project for documentation/sharing purposes.
+- **WEDA org/tenant:** `AJP-WEDA-Testing`, device `ARK-2252-TEST`, accessed via the
+  WEDA Console at `https://tpe.cloud.advantech.com/rbu/weda/` (Devices → ARK-2252-TEST
+  → Deployments).
+- **Docker image:** [`m4x1m25/weda-object-detection`](https://hub.docker.com/r/m4x1m25/weda-object-detection)
+  on Docker Hub (currently at tag `v2`).
+- **Requesting WEDA tenant access:** this tenant was provisioned by the Taiwan WISE-IoT
+  team (Dolly Cheng / KaiChun Yang) at Tony Fu's request. If you need your own access,
+  request it through **Ryan Zhang (Ryan.Zhang@advantech.com)**, same as how this
+  project's access was originally set up.
+- **Requesting access to this repo:** it lives under Jack Tsao's GitHub
+  (`jack-tsao/documentation`) — ask Jack to add you as a collaborator.
+
 ## What it does
 
 - Lists connected Intel RealSense devices on launch; auto-selects if only one is found.
